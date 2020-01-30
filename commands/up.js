@@ -79,18 +79,38 @@ async function up(force)
     await VBoxManage.execute("startvm", `${name} --type headless`);
 
     // Explicit wait for boot
-    let waitTime = 60000;
-    console.log(`Waiting ${waitTime}ms for machine to boot.`);        
-    await sleep(waitTime);
-    console.log(`VM is currently: ${state}`);
+    await pause(name, 90000);
     
     // Run your post-configuration customizations for the Virtual Machine.
     await postconfiguration();
+}
 
+async function pause(name, waitTime)
+{   
+    console.log(`Waiting ${waitTime}ms for machine to boot.`);        
+    await sleep(waitTime);
+    state = await VBoxManage.show(name);
+    console.log(`VM is currently: ${state}`);
 }
 
 async function customize(name)
-{
+{   
+    // await VBoxManage.execute("natnetwork", "start --netname natpf1");
+    // await VBoxManage.execute("natnetwork", `modify --netname natpf1 --dhcp on`);
+
+    // await VBoxManage.execute("natnetwork", `modify --netname natpf1 --port-forward-4 "guestssh:tcp:[]:2800:[127.0.0.1]:22"`).catch(e => e);
+    // await VBoxManage.execute("natnetwork", `modify --netname natpf1 --port-forward-4 "nodeport:tcp:[]:8080:[127.0.0.1]:9000"`).catch(e => e);
+   
+    // Add NIC with NAT networking
+    // await VBoxManage.execute("modifyvm", `${name} --nic1 natnetwork`);
+    await VBoxManage.execute("modifyvm", `${name} --nictype1 virtio`);
+
+    // // Port forwarding for guestssh
+    await VBoxManage.execute("modifyvm", `${name} --natpf1 "guestssh,tcp,,2800,,22"`);
+
+    // // Port forwarding for node application
+    await VBoxManage.execute("modifyvm", `"${name}" --natpf1 "nodeport,tcp,,8080,,9000"`);
+    
     console.log(chalk.keyword('pink')(`Running VM customizations...`));
 }
 
@@ -98,7 +118,12 @@ async function postconfiguration(name)
 {
     console.log(chalk.keyword('pink')(`Running post-configurations...`));
      
-    ssh("ls /");
+    await pause(name, 60000);
+    await ssh("ls /").catch(e => console.log(chalk.keyword('red')(e)));
+    // await ssh("sudo apt-get update");
+    // await ssh("sudo apt-get --yes install npm nodejs git");
+    // await ssh("git clone https://github.com/CSC-DevOps/App");
+    // await ssh("cd App")
 }
 
 // Helper utility to wait.
