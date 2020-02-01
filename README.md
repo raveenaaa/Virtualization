@@ -1,4 +1,4 @@
-# CSC 519: DevOps HW 1
+# Virutalization
 
 Practice with basic virtualization technology and provision and set up Virtual Machines from the commandline using VirtualBox VBoxManage commands and ssh.
 
@@ -101,4 +101,3 @@ After performing these steps you will be able to see your files in the shared di
 ### Video Links:
 
 * https://youtu.be/1ZlSpJzpiHM
-* https://drive.google.com/file/d/12aBhzp7iR0b--GUZpiOGG1r9QRv37eQA/view?usp=sharing
