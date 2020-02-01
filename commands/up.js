@@ -21,7 +21,7 @@ exports.builder = yargs => {
 
 
 exports.handler = async argv => {
-    const { force } = argv;
+    const { force} = argv;
 
     (async () => {
     
@@ -82,8 +82,9 @@ async function up(force)
     await pause(name, 60000);
     
     // Run your post-configuration customizations for the Virtual Machine.
-    await postconfiguration();
+    await postconfiguration(name);
 }
+exports.up = up
 
 async function pause(name, waitTime)
 {   
@@ -92,12 +93,17 @@ async function pause(name, waitTime)
     state = await VBoxManage.show(name);
     console.log(`VM is currently: ${state}`);
 }
+exports.pause = pause
+
 
 async function customize(name)
 {   
-    
     // Add NIC with NAT networking
     await VBoxManage.execute("modifyvm", `${name} --nic1 nat`);
+
+    // Adding HOst-only network
+    const ifname = 'VirtualBox Host-Only Ethernet Adapter'
+    await VBoxManage.execute("modifyvm", `${name} --nic2 hostonly --hostonlyadapter2 "${ifname}"`);
 
     // Port forwarding for guestssh
     await VBoxManage.execute("modifyvm", `${name} --natpf1 "guestssh,tcp,,2800,,22"`);
@@ -109,13 +115,71 @@ async function customize(name)
 }
 
 async function postconfiguration(name)
-{
+{   
     console.log(chalk.keyword('pink')(`Running post-configurations...`));
-     
-    await pause(name, 60000);
+    
+    console.log(chalk.keyword('orange')('Command: ls /'));
     await ssh("ls /");
-    await ssh("sudo apt-get update ; sudo apt-get --yes install npm nodejs git");
-    await ssh("git clone https://github.com/CSC-DevOps/App ; cd App ; sudo npm install");
+
+    console.log(chalk.keyword('orange')('Command: sudo apt-get update'));
+    await ssh("sudo apt-get update");
+
+    console.log(chalk.keyword('orange')('Command: Install npm nodejs and git'));
+    await ssh("sudo apt-get --yes install npm nodejs git");
+
+    console.log(chalk.keyword('orange')('Command: Cloning repository'));
+    await ssh("git clone https://github.com/CSC-DevOps/App");
+    
+    console.log(chalk.keyword('orange')('Command: Installing node modules'));
+    await ssh("cd App ; sudo npm install");
+    
+    // Extra credit
+    await sharedsyncfolders(name);
+    await hostonlyconfigs();
+}
+
+async function hostonlyconfigs()
+{   
+    // Extra Credit: Set up Host-only network
+    console.log(chalk.keyword('green')(`Setting up Host-only additional configurations...`));
+    console.log(chalk.keyword('orange')('Command: Installing ifupdown'));
+    await ssh("sudo apt install ifupdown"); 
+    console.log(chalk.keyword('orange')('Command: Modifying /etc/network/interfaces'));
+    await ssh(`"echo 'iface enp0s8 inet dhcp' | sudo tee -a /etc/network/interfaces"`);
+    console.log(chalk.keyword('orange')('Command: Setting enp0s8 link UP'));
+    await ssh("sudo ifup enp0s8; ifconfig");
+}
+exports.hostonlyconfigs = hostonlyconfigs
+
+async function sharedsyncfolders(name)
+{   
+    // Extra-credit: Set up shared sync folder
+    console.log(chalk.keyword('green')(`Setting up shared sync folder`));
+    let state = await VBoxManage.show(name);
+
+    // Add optical drive
+    const guestadditionspath = "C:\\Program Files\\Oracle\\VirtualBox\\VBoxGuestAdditions.iso"
+    await VBoxManage.execute("storageattach", `${name} --storagectl "IDE" \
+                                                       --port 0 \
+                                                       --type dvddrive \
+                                                       --medium "${guestadditionspath}" \
+                                                       --device 1`);
+    
+    const hostpath = process.cwd();
+    console.log(chalk.keyword('orange')(`Adding shared folder: ${hostpath}`));
+    const sharename = "fileshare"
+    const guestpath = "share/"
+    await VBoxManage.execute("sharedfolder", `add ${name} \
+                                            --name ${sharename} \
+                                            --hostpath "${hostpath}" \
+                                            --transient \
+                                            --readonly`);
+
+    
+    console.log(chalk.keyword('orange')(`Mounting shared folder to guest os in share/`));
+    await ssh(`sudo usermod -aG vboxsf vagrant`);
+    await ssh(`sudo mkdir ${guestpath}; ls`);
+    await ssh(`sudo mount -t vboxsf ${sharename} ${guestpath}`); 
 }
 
 // Helper utility to wait.
