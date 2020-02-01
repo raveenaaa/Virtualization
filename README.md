@@ -69,11 +69,34 @@ The rest of the commands for these are in the `hostonlyconfigs()` function. All 
 Upon doing this you will be able to see the hostonly link and its IP address using `ifconfig`. Using that IP address you can visit your running app using `<ip>:9000`
 
 #### Create a shared sync folder
-* Attach an optical drive to your VM and insert the guest additions CD image: ```bash VBoxManage storageattach <vmname> --storagectl "IDE" --port 0 --type dvdrive --medium <isopath> --device 1``` The isopath is generally: `C:/Program Files/Oracle/VirtualBox/VBoxGuestAdditions.iso
-* Create a virtual shared folder using: `VBoxManage sharedfolder add <vmname> --name <guestfoldername> --hostpath <hostfolderpath> --transient --readonly`
-Where `<guestfoldername>` is the *unique* name to be assigned to the shared folder. `<hostfolderpath>` is the full path to the folder to be shared on the Host-os. Both of these are mandatory. `--transient` is optional and means that the share is transient and can be added and removed at runtime and doesn't persist. `--readonly` is optional and allow sread-only access.
+* Attach an optical drive to your VM and insert the guest additions CD image: 
+```bash
+VBoxManage storageattach <vmname> --storagectl "IDE" --port 0 --type dvdrive --medium <isopath> --device 1
+``` 
+
+The `<isopath>` is generally: `C:/Program Files/Oracle/VirtualBox/VBoxGuestAdditions.iso`
+
+* Create a virtual shared folder using: 
+```bash
+VBoxManage sharedfolder add <vmname> --name <guestfoldername> --hostpath <hostfolderpath> --transient --readonly
+```
+
+   Where `<sharername>` is the *unique* name to be assigned to the share. **Mandatory** 
+   
+   `<hostfolderpath>` is the full path to the folder to be shared on the Host-os. **Mandatory**.
+   
+   `--transient` is **optional** and means that the share is transient and can be added and removed at runtime and doesn't persist. 
+   
+   `--readonly` is **optional** and allow read-only access.
+   
 * Adding the user to `vboxsf` group to access shared folder: `sudo usermod -aG vboxsf vagrant`
-*
+* Making the shared directory and mounting shared file to the shared directory:
+```bash
+sudo makedir <guestpath>
+sudo mount -t vboxsf <sharename> <guestpath>
+```
+
+After performing these steps you will be able to see your files in the shared directory on the guest OS. For more detailed explanation visit [this](https://helpdeskgeek.com/virtualization/virtualbox-share-folder-host-guest/)
 
 ### Video Links:
 
