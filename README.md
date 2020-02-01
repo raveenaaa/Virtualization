@@ -1,4 +1,4 @@
-# Virutalization
+# Virtualization
 
 Practice with basic virtualization technology and provision and set up Virtual Machines from the commandline using VirtualBox VBoxManage commands and ssh.
 
