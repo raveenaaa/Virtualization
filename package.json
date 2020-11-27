@@ -15,7 +15,7 @@
   "license": "ISC",
   "dependencies": {
     "chalk": "^3.0.0",
-    "systeminformation": "^4.21.0",
+    "systeminformation": "^4.30.5",
     "yargs": "^15.1.0"
   }
 }
